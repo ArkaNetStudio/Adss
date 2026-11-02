@@ -1,16 +1,16 @@
 {
-	"name": "LIGHTS Lobby",
+	"name": "LIGHTS",
 	"tree": {
 		"$className": "DataModel",
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
-			"LightsLobby": {
+			"LIGHTS": {
 				"$path": "src/shared"
 			}
 		},
 		"ServerScriptService": {
 			"$className": "ServerScriptService",
-			"LightsLobby": {
+			"LIGHTS": {
 				"$path": "src/server"
 			}
 		},
@@ -18,7 +18,7 @@
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
-				"LightsLobby": {
+				"LIGHTS": {
 					"$path": "src/client"
 				}
 			}

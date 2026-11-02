@@ -10,7 +10,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local shared = ReplicatedStorage:WaitForChild("LightsLobby")
+local shared = ReplicatedStorage:WaitForChild("LIGHTS")
 local Config = require(shared:WaitForChild("Config"))
 local Rules = require(shared:WaitForChild("Rules"))
 

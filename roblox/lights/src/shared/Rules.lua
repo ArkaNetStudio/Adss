@@ -41,15 +41,64 @@ function Rules.restoreDelay(rng: { NextNumber: (any) -> number }, spread: number
 	return rng:NextNumber() * spread
 end
 
--- Decide cosa fare della coda: "idle" (vuota), "wait", "countdown".
-function Rules.queueDecision(count: number, waited: number, minPlayers: number, maxWait: number): string
-	if count <= 0 then
-		return "idle"
+-- Quanti giocatori prendere dalla coda per formare un gruppo (0 = aspetta).
+-- Coda piena (>= maxPlayers) -> gruppo pieno subito; altrimenti, dopo maxWait secondi, parte chi c'e' (anche 1).
+function Rules.groupSize(queued: number, waited: number, maxPlayers: number, maxWait: number): number
+	if queued >= maxPlayers then
+		return maxPlayers
 	end
-	if count >= minPlayers or waited >= maxWait then
-		return "countdown"
+	if queued > 0 and waited >= maxWait then
+		return queued
 	end
-	return "wait"
+	return 0
+end
+
+-- Risultato di una votazione. votes: voto di ciascun giocatore (valori fuori da options ignorati).
+-- Vince il piu' votato; pareggio = estrazione tra i pari; nessun voto = fallback se valido, altrimenti estrazione tra tutte.
+function Rules.resolveVote(rng: { NextNumber: (any) -> number }, votes: { [any]: string }, options: { string }, fallback: string?): string
+	local counts: { [string]: number } = {}
+	for _, option in options do
+		counts[option] = 0
+	end
+	local any = false
+	for _, choice in votes do
+		if counts[choice] ~= nil then
+			counts[choice] += 1
+			any = true
+		end
+	end
+	local pool = {}
+	if any then
+		local best = 0
+		for _, option in options do
+			best = math.max(best, counts[option])
+		end
+		for _, option in options do
+			if counts[option] == best then
+				table.insert(pool, option)
+			end
+		end
+	elseif fallback and counts[fallback] ~= nil then
+		return fallback
+	else
+		pool = table.clone(options)
+	end
+	local pick = math.floor(rng:NextNumber() * #pool) + 1
+	return pool[math.min(pick, #pool)]
+end
+
+-- Conta i voti per opzione (per mostrarli in tempo reale).
+function Rules.tally(votes: { [any]: string }): { [string]: number }
+	local counts = {}
+	for _, choice in votes do
+		counts[choice] = (counts[choice] or 0) + 1
+	end
+	return counts
+end
+
+-- Durata dell'esplorazione scalata dalla difficolta' (secondi interi). L'estrazione resta fissa.
+function Rules.explorationSeconds(base: number, timeScale: number): number
+	return math.floor(base * timeScale + 0.5)
 end
 
 -- Sceglie a caso una postazione per la sagoma. distances[i] = distanza minima dei giocatori dalla postazione i.

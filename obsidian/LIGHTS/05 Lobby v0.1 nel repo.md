@@ -3,6 +3,8 @@ tags: [lights, codice]
 ---
 # Lobby v0.1 nel repo
 
+> [!note] Sostituita dalla lobby 0.2 (`roblox/lights/`). Riusati: Lights, Apparition, Events, Rules, Effects, Settings. Rimossi: Builder, Menu, PlayerSettings.
+
 Cartella `roblox/lights-lobby/` (commit `cb41591`). Mai provata in Studio.
 
 | Sistema | File | Riuso nel rework |

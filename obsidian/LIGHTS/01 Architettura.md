@@ -3,7 +3,9 @@ tags: [lights, architettura]
 ---
 # Architettura (proposta)
 
-> [!info] Proposta da confermare in [[04 Domande aperte]]. Codice in Luau, sync con Rojo, logica sensibile solo sul server.
+> [!info] Codice in Luau, sync con Rojo, logica sensibile solo sul server.
+
+> [!warning] Aggiornato da [[06 Decisioni]]: **un solo place**. La sezione "Places" qui sotto e il passaggio via MemoryStore/teletrasporto sono superati: la partita si svolge in una copia della mappa in uno slot lontano dalla lobby, sullo stesso server. Il resto resta valido.
 
 ## Places (un'unica esperienza)
 | Place | Ruolo |

@@ -9,7 +9,7 @@ local Lighting = game:GetService("Lighting")
 local SoundService = game:GetService("SoundService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local shared = ReplicatedStorage:WaitForChild("LightsLobby")
+local shared = ReplicatedStorage:WaitForChild("LIGHTS")
 local Config = require(shared:WaitForChild("Config"))
 local Net = require(shared:WaitForChild("Net"))
 

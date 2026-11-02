@@ -14,7 +14,7 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local shared = ReplicatedStorage:WaitForChild("LightsLobby")
+local shared = ReplicatedStorage:WaitForChild("LIGHTS")
 local Config = require(shared:WaitForChild("Config"))
 local Rules = require(shared:WaitForChild("Rules"))
 local Net = require(shared:WaitForChild("Net"))
@@ -27,6 +27,7 @@ export type Fixture = {
 	light: PointLight,
 	trigger: Part?,
 	buzz: Sound?,
+	litColor: Color3, -- colore da accesa (bianco freddo o rosso per le barre della baia)
 	powered: boolean, -- la corrente arriva a questa lampada
 	lit: boolean, -- stato del lampeggio
 	forced: number, -- quante cause la tengono spenta (es. un giocatore ci passa sotto)
@@ -34,7 +35,6 @@ export type Fixture = {
 	lastTrigger: number?,
 }
 
-local LIT_COLOR = Color3.fromRGB(226, 244, 236)
 local OFF_COLOR = Color3.fromRGB(52, 54, 56)
 local DARK_AMBIENT = Color3.fromRGB(3, 3, 4)
 
@@ -77,7 +77,7 @@ local function apply(f: Fixture)
 	local on = f.powered and f.lit and f.forced == 0
 	f.light.Enabled = on
 	f.housing.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-	f.housing.Color = if on then LIT_COLOR else OFF_COLOR
+	f.housing.Color = if on then f.litColor else OFF_COLOR
 	if f.buzz then
 		if on and not f.buzz.IsPlaying then
 			f.buzz:Play()
@@ -199,6 +199,7 @@ function Lights.init(lamps: { Lamp }, random: Random)
 			light = lamp.light,
 			trigger = lamp.trigger,
 			buzz = makeSound(lamp.housing, Config.Sounds.Buzz, 0.25, Lights.groups.Ambient, true),
+			litColor = lamp.housing.Color,
 			powered = true,
 			lit = true,
 			forced = 0,

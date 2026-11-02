@@ -9,7 +9,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local shared = ReplicatedStorage:WaitForChild("LightsLobby")
+local shared = ReplicatedStorage:WaitForChild("LIGHTS")
 local Net = require(shared:WaitForChild("Net"))
 local Settings = require(script.Parent.Settings)
 
@@ -27,14 +27,16 @@ end
 -- Trova le lettere del logo (tag LightsLogo, creato dal server nel Builder).
 local function findLogo()
 	table.clear(letters)
-	local panel = CollectionService:GetTagged("LightsLogo")[1]
-	local gui = panel and panel:FindFirstChildOfClass("SurfaceGui")
-	if not gui then
-		return
-	end
-	for _, child in gui:GetChildren() do
-		if child:IsA("TextLabel") then
-			table.insert(letters, child)
+	-- L'insegna ha una SurfaceGui per lato: si raccolgono le lettere di tutte.
+	for _, panel in CollectionService:GetTagged("LightsLogo") do
+		for _, gui in panel:GetChildren() do
+			if gui:IsA("SurfaceGui") then
+				for _, child in gui:GetChildren() do
+					if child:IsA("TextLabel") then
+						table.insert(letters, child)
+					end
+				end
+			end
 		end
 	end
 end
@@ -91,6 +93,8 @@ local function gridFor(screen: Frame): { Frame }
 			cell.Size = UDim2.fromScale(1 / COLS, 1 / ROWS)
 			cell.Position = UDim2.fromScale((col - 1) / COLS, (row - 1) / ROWS)
 			cell.BackgroundColor3 = Color3.new(0, 0, 0)
+			cell.BackgroundTransparency = 1 -- invisibili a riposo: il testo del monitor resta leggibile
+			cell.ZIndex = 5
 			cell.Parent = screen
 			table.insert(cells, cell)
 		end
@@ -111,11 +115,12 @@ local function showStatic(monitor: Instance)
 		for _, cell in cells do
 			local v = 0.15 + math.random() * 0.6
 			cell.BackgroundColor3 = Color3.new(v, v, v)
+			cell.BackgroundTransparency = 0
 		end
 		task.wait(0.05)
 	end
 	for _, cell in cells do
-		cell.BackgroundColor3 = Color3.new(0, 0, 0)
+		cell.BackgroundTransparency = 1
 	end
 end
 

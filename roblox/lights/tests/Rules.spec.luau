@@ -38,11 +38,27 @@ check("pesata: peso zero mai scelto", Rules.pickWeighted(fixed(0.5), { { name = 
 check("random tra min e max", Rules.randomBetween(fixed(0.5), 4, 8) == 6)
 check("ritardo riaccensione dentro lo spread", Rules.restoreDelay(fixed(1), 1.1) <= 1.1)
 
--- coda
-check("coda vuota = idle", Rules.queueDecision(0, 0, 2, 40) == "idle")
-check("un giocatore, poco tempo = attesa", Rules.queueDecision(1, 5, 2, 40) == "wait")
-check("abbastanza giocatori = countdown", Rules.queueDecision(2, 0, 2, 40) == "countdown")
-check("timeout con un giocatore = countdown", Rules.queueDecision(1, 40, 2, 40) == "countdown")
+-- gruppi (max 4, attesa 25 s)
+check("coda vuota = nessun gruppo", Rules.groupSize(0, 100, 4, 25) == 0)
+check("coda piena = gruppo pieno subito", Rules.groupSize(6, 0, 4, 25) == 4)
+check("due giocatori, poco tempo = attesa", Rules.groupSize(2, 5, 4, 25) == 0)
+check("timeout = parte chi c'e'", Rules.groupSize(2, 25, 4, 25) == 2)
+check("timeout = anche da solo", Rules.groupSize(1, 30, 4, 25) == 1)
+
+-- votazione
+local maps = { "A", "B", "C" }
+check("vince il piu' votato", Rules.resolveVote(fixed(0.9), { p1 = "B", p2 = "B", p3 = "A" }, maps) == "B")
+check("pareggio: estrazione tra i pari (rng 0 -> primo)", Rules.resolveVote(fixed(0), { p1 = "C", p2 = "A" }, maps) == "A")
+check("pareggio: estrazione tra i pari (rng alto -> ultimo)", Rules.resolveVote(fixed(0.99), { p1 = "C", p2 = "A" }, maps) == "C")
+check("nessun voto: fallback", Rules.resolveVote(fixed(0.99), {}, maps, "B") == "B")
+check("nessun voto, senza fallback: estrazione", Rules.resolveVote(fixed(0.99), {}, maps) == "C")
+check("voti non validi ignorati", Rules.resolveVote(fixed(0), { p1 = "X", p2 = "X", p3 = "C" }, maps) == "C")
+local counts = Rules.tally({ p1 = "A", p2 = "A", p3 = "B" })
+check("conteggio voti", counts.A == 2 and counts.B == 1 and counts.C == nil)
+
+-- durata round
+check("esplorazione normale = 300", Rules.explorationSeconds(300, 1) == 300)
+check("esplorazione incubo = 210", Rules.explorationSeconds(300, 0.7) == 210)
 
 -- postazioni della sagoma: distances e' il margine (distanza - distanza minima richiesta), soglia 0
 check("nessuna postazione utilizzabile = nil", Rules.pickSpot(fixed(0), { -5, -10 }, 0) == nil)

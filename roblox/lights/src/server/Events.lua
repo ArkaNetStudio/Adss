@@ -10,7 +10,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local shared = ReplicatedStorage:WaitForChild("LightsLobby")
+local shared = ReplicatedStorage:WaitForChild("LIGHTS")
 local Config = require(shared:WaitForChild("Config"))
 local Rules = require(shared:WaitForChild("Rules"))
 local Net = require(shared:WaitForChild("Net"))
@@ -23,7 +23,8 @@ local OPEN_ANGLE = -1.2 -- stessa apertura iniziale della porta nel Builder
 local rng: Random
 local folder: Instance
 local visuals: RemoteEvent
-local doorRef: { part: Part, hinge: Vector3 }? = nil
+local doorRef: { part: Part, hinge: CFrame }? = nil
+local shadowPaths: { { from: Vector3, to: Vector3 } } = {}
 local monitorList: { Part } = {}
 local lastAt: { [string]: number } = {}
 local lastAny: number? = nil
@@ -40,12 +41,12 @@ local function playerNear(position: Vector3, radius: number): boolean
 end
 
 -- Porta ruotata sulla cerniera: si chiude piano; se un giocatore si avvicina torna indietro.
-local function swingDoor(door: Part, hinge: Vector3)
+local function swingDoor(door: Part, hinge: CFrame)
 	local angle = Instance.new("NumberValue")
 	angle.Value = OPEN_ANGLE
 	angle.Parent = folder
 	local connection = angle.Changed:Connect(function()
-		door.CFrame = CFrame.new(hinge) * CFrame.Angles(0, angle.Value, 0) * CFrame.new(3, 3.5, 0)
+		door.CFrame = hinge * CFrame.Angles(0, angle.Value, 0) * CFrame.new(3, 3.5, 0)
 	end)
 
 	local function reopen()
@@ -81,12 +82,16 @@ local function swingDoor(door: Part, hinge: Vector3)
 	closing:Play()
 end
 
--- Ombra scura e semitrasparente che attraversa il corridoio in pochi secondi.
+-- Ombra scura e semitrasparente che attraversa uno dei percorsi della lobby in pochi secondi.
 local function crossShadow()
-	local fromWest = rng:NextNumber() < 0.5
-	local z = Rules.randomBetween(rng, -2, 2)
-	local startX = if fromWest then -95 else 95
-	local endX = -startX
+	if #shadowPaths == 0 then
+		return
+	end
+	local path = shadowPaths[rng:NextInteger(1, #shadowPaths)]
+	local reverse = rng:NextNumber() < 0.5
+	local from = if reverse then path.to else path.from
+	local to = if reverse then path.from else path.to
+	local facing = CFrame.lookAt(from, to)
 
 	local shadow = Instance.new("Part")
 	shadow.Name = "Shadow"
@@ -99,12 +104,12 @@ local function crossShadow()
 	shadow.Color = Color3.fromRGB(4, 4, 5)
 	shadow.Transparency = 1
 	shadow.Size = Vector3.new(2.2, 6.5, 0.3)
-	shadow.CFrame = CFrame.new(startX, 3.2, z)
+	shadow.CFrame = facing
 	shadow.Parent = folder
 
 	local info = TweenInfo.new(1.6, Enum.EasingStyle.Linear)
 	TweenService:Create(shadow, TweenInfo.new(0.25), { Transparency = 0.7 }):Play()
-	TweenService:Create(shadow, info, { CFrame = CFrame.new(endX, 3.2, z) }):Play()
+	TweenService:Create(shadow, info, { CFrame = facing + (to - from) }):Play()
 	task.delay(1.3, function()
 		TweenService:Create(shadow, TweenInfo.new(0.3), { Transparency = 1 }):Play()
 	end)
@@ -173,8 +178,9 @@ function Events.run()
 end
 
 -- Prepara gli eventi con la porta e i monitor del layout.
-function Events.init(door: { part: Part, hinge: Vector3 }, monitors: { Part }, parent: Instance, random: Random)
+function Events.init(door: { part: Part, hinge: CFrame }, monitors: { Part }, paths: { { from: Vector3, to: Vector3 } }, parent: Instance, random: Random)
 	doorRef = door
+	shadowPaths = paths
 	monitorList = monitors
 	folder = parent
 	rng = random

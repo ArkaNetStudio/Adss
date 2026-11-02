@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Net.lua — crea (server) o attende (client) i RemoteEvent/RemoteFunction della lobby.
-	Tutti stanno in ReplicatedStorage/LightsLobby/Remotes, cosi' nessuno va creato a mano in Studio.
+	Tutti stanno in ReplicatedStorage/LIGHTS/Remotes, cosi' nessuno va creato a mano in Studio.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,11 +11,11 @@ local Net = {}
 
 local root: Instance
 if RunService:IsServer() then
-	root = ReplicatedStorage:FindFirstChild("LightsLobby") or Instance.new("Folder")
-	root.Name = "LightsLobby"
+	root = ReplicatedStorage:FindFirstChild("LIGHTS") or Instance.new("Folder")
+	root.Name = "LIGHTS"
 	root.Parent = ReplicatedStorage
 else
-	root = ReplicatedStorage:WaitForChild("LightsLobby") -- il client attende: non deve creare una copia locale
+	root = ReplicatedStorage:WaitForChild("LIGHTS") -- il client attende: non deve creare una copia locale
 end
 
 local folder = root:FindFirstChild("Remotes")

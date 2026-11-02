@@ -1,7 +1,9 @@
 ---
 tags: [lights, domande]
 ---
-# Domande aperte (bloccano la Milestone 2)
+# Domande aperte
+
+> [!success] Risposte ricevute il 2 nov 2026: vedi [[06 Decisioni]]. Testo originale sotto.
 
 1. **Accesso al gioco attuale.** La lobby degli screenshot esiste gia' nel tuo place, ma il repo contiene solo la mia lobby v0.1 ([[05 Lobby v0.1 nel repo]]). Per analizzare i sistemi esistenti mi serve una di queste:
    - esportare il place come `.rbxlx` nel repo, oppure
