@@ -27,6 +27,11 @@ Codice: `roblox/lights/` (Rojo). Verifiche eseguite: parser Luau su tutti i file
 - Milestone 5-13 (mappe, entita', stamina/sanity/torcia, prima persona, shop, leaderboard, monetizzazione).
 - Shop, inventario, classifiche: nessun pulsante nel menu finche' non esistono.
 
+## Lobby visibile in Edit (aggiornamento)
+- La lobby si costruisce **una volta in Studio** dalla Command Bar: `require(game.ServerScriptService.LIGHTS.LobbyBuilder).bake()`, poi Ctrl+S.
+- A runtime il server **riusa** `Workspace.LIGHTS_Lobby` e legge lampade, monitor, porta, percorsi ombra e postazioni sagome da tag (`LightsLamp`, `LightsMonitor`, `LightsDeployScreen`, `LightsDoor`, `LightsLogo`) e dai marcatori in `LIGHTS_Lobby/Markers`. Si possono spostare e duplicare in Studio.
+- Se la lobby manca, viene costruita a runtime come prima (con un avviso in Output).
+
 ## Da provare in Studio (checklist Milestone 2-3)
 - [ ] La lobby si costruisce senza errori in Output; 60 FPS su PC medio
 - [ ] Lettere LIGHTS leggibili da entrambi i lati; si spengono coi blackout

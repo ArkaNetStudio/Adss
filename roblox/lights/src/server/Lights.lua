@@ -215,6 +215,9 @@ end
 
 -- Ciclo principale degli eventi di luce. Chiama onStart/onEnd attorno ai blackout.
 function Lights.run(onStart: (string, number) -> (), onEnd: () -> ())
+	if #fixtures == 0 then
+		return -- nessuna lampada taggata: niente da far lampeggiare
+	end
 	local nextBlackoutAt = os.clock()
 		+ Rules.randomBetween(rng, Config.Lights.BlackoutMinGap, Config.Lights.BlackoutMaxGap)
 	while true do

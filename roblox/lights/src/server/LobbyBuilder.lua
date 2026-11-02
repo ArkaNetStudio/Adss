@@ -7,7 +7,7 @@
 	- Nord: ballatoio a y=12 con scala (lato ovest) e sala controllo vetrata (sagoma dietro il vetro).
 	- Est: baia di partenza, 4 porte blindate con barra rossa e monitor della coda.
 	- Ovest: area informazioni (bacheca, rapporto) e porta di servizio verso uno stanzino buio.
-	Restituisce lampade, monitor, porta, percorsi delle ombre e postazioni delle sagome per gli altri moduli.
+	build() crea la lobby (in Studio con bake(), o a runtime se manca); collect() la rilegge da tag e marcatori.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -36,12 +36,23 @@ export type Layout = {
 	lamps: { Lamp },
 	monitors: { Part },
 	deployScreens: { TextLabel },
-	door: { part: Part, hinge: CFrame },
+	door: { part: Part, hinge: CFrame }?,
 	shadowPaths: { { from: Vector3, to: Vector3 } },
 	spots: { Spot },
 }
 
-function LobbyBuilder.build(rng: Random): Layout
+-- Seed fisso: la lobby e' sempre uguale, sia costruita in Studio sia a runtime.
+LobbyBuilder.SEED = 20261102
+
+-- Crea un valore figlio (riferimenti che i tag da soli non possono esprimere).
+local function valueChild(className: string, name: string, value: any, parent: Instance)
+	local v = Instance.new(className) :: any
+	v.Name = name
+	v.Value = value
+	v.Parent = parent
+end
+
+function LobbyBuilder.build(rng: Random): Folder
 	local folder = Instance.new("Folder")
 	folder.Name = "LIGHTS_Lobby"
 	folder.Parent = workspace
@@ -58,9 +69,11 @@ function LobbyBuilder.build(rng: Random): Layout
 		return p
 	end
 
-	local lamps: { Lamp } = {}
 	local function addLamp(housing: Part, light: PointLight, trigger: Part?)
-		table.insert(lamps, { housing = housing, light = light, trigger = trigger })
+		CollectionService:AddTag(housing, "LightsLamp")
+		if trigger then
+			valueChild("ObjectValue", "Trigger", trigger, housing)
+		end
 	end
 	-- Lampada a campana appesa a un cavo (come nei riferimenti). Il bulbo e' la parte che si accende.
 	local function pendant(x: number, z: number, y: number, trigger: boolean)
@@ -303,8 +316,6 @@ function LobbyBuilder.build(rng: Random): Layout
 	end
 
 	-- ================= Est: baia di partenza =================
-	local monitors: { Part } = {}
-	local deployScreens: { TextLabel } = {}
 	for index, z in { -24, -8, 8, 24 } do
 		block(Vector3.new(57, 0, z - 5), Vector3.new(60, 11, z - 4)) -- spallette
 		block(Vector3.new(57, 0, z + 4), Vector3.new(60, 11, z + 5))
@@ -349,8 +360,8 @@ function LobbyBuilder.build(rng: Random): Layout
 		text.Text = "BAIA " .. index
 		text.Parent = screen
 		CollectionService:AddTag(monitor, "LightsMonitor")
-		table.insert(monitors, monitor)
-		table.insert(deployScreens, text)
+		CollectionService:AddTag(text, "LightsDeployScreen")
+		text:SetAttribute("Bay", index)
 	end
 	Geometry.sign(folder, Vector3.new(59.6, 18, 0), Vector3.new(-1, 0, 0), Vector2.new(14, 2.4), "BAIA DI PARTENZA", {
 		background = BLACK,
@@ -393,6 +404,8 @@ function LobbyBuilder.build(rng: Random): Layout
 	doorPanel.Color = Geometry.jitter(STEEL, rng)
 	doorPanel.CFrame = hinge * CFrame.Angles(0, -1.2, 0) * CFrame.new(3, 3.5, 0)
 	doorPanel.Parent = folder
+	CollectionService:AddTag(doorPanel, "LightsDoor")
+	valueChild("CFrameValue", "Hinge", hinge, doorPanel)
 
 	-- Stanzino buio dietro la porta: X[-72,-62] Z[10,24]
 	block(Vector3.new(-73, -2, 9), Vector3.new(-62, 0, 25))
@@ -402,26 +415,119 @@ function LobbyBuilder.build(rng: Random): Layout
 	block(Vector3.new(-72, 0, 24), Vector3.new(-62, 9, 25))
 	tube(Vector3.new(-67, 8.4, 17), 10)
 
-	-- ================= Percorsi delle ombre e postazioni delle sagome =================
-	local shadowPaths = {
-		{ from = Vector3.new(-56, 3.2, -38), to = Vector3.new(56, 3.2, -38) }, -- sotto il ballatoio
-		{ from = Vector3.new(54, 3.2, -30), to = Vector3.new(54, 3.2, 30) }, -- davanti alle porte della baia
-	}
-	local spots: { Spot } = {
-		{ name = "underMezzanine", position = Vector3.new(-56, 0, -42), minDistance = Config.Apparition.MinPlayerDistance },
-		{ name = "serviceRoom", position = Vector3.new(-69, 0, 13), minDistance = 30 },
-		{ name = "glass", position = Vector3.new(22, 12, -40), minDistance = 16 }, -- dietro il vetro della sala controllo
-	}
+	-- ================= Marcatori (invisibili, spostabili in Studio) =================
+	-- Percorsi delle ombre e postazioni delle sagome sono Part invisibili: si possono spostare a mano.
+	local markers = Instance.new("Folder")
+	markers.Name = "Markers"
+	markers.Parent = folder
+	local function marker(name: string, position: Vector3, size: Vector3): Part
+		local m = Instance.new("Part")
+		m.Name = name
+		m.Anchored = true
+		m.CanCollide = false
+		m.CanQuery = false
+		m.CanTouch = false
+		m.Transparency = 1
+		m.Size = size
+		m.CFrame = CFrame.new(position)
+		m.Parent = markers
+		return m
+	end
+	for _, path in {
+		{ Vector3.new(-56, 3.2, -38), Vector3.new(56, 3.2, -38) }, -- sotto il ballatoio
+		{ Vector3.new(54, 3.2, -30), Vector3.new(54, 3.2, 30) }, -- davanti alle porte della baia
+	} do
+		local m = marker("ShadowPath", (path[1] + path[2]) / 2, Vector3.new(1, 1, 1))
+		m:SetAttribute("From", path[1])
+		m:SetAttribute("To", path[2])
+	end
+	for _, spot in {
+		{ "underMezzanine", Vector3.new(-56, 0, -42), Config.Apparition.MinPlayerDistance },
+		{ "serviceRoom", Vector3.new(-69, 0, 13), 30 },
+		{ "glass", Vector3.new(22, 12, -40), 16 }, -- dietro il vetro della sala controllo
+	} do
+		-- Il marcatore e' grande quanto la sagoma: la sua base e' il punto dove compare.
+		local m = marker("ApparitionSpot", spot[2] + Vector3.new(0, 4, 0), Vector3.new(2, 8, 1))
+		m:SetAttribute("SpotName", spot[1])
+		m:SetAttribute("MinDistance", spot[3])
+	end
 
+	return folder
+end
+
+-- Rilegge il layout da una lobby esistente (costruita ora o salvata nel place e magari modificata a mano).
+-- Tutto passa da tag e marcatori: spostare o duplicare lampade e marcatori in Studio funziona senza toccare il codice.
+function LobbyBuilder.collect(folder: Instance): Layout
+	local lamps: { Lamp } = {}
+	local monitors: { Part } = {}
+	local screens: { TextLabel } = {}
+	local door: { part: Part, hinge: CFrame }? = nil
+	local shadowPaths = {}
+	local spots: { Spot } = {}
+	for _, item in folder:GetDescendants() do
+		if item:IsA("Part") and CollectionService:HasTag(item, "LightsLamp") then
+			local light = item:FindFirstChildOfClass("PointLight")
+			local trigger = item:FindFirstChild("Trigger")
+			if light then
+				table.insert(lamps, {
+					housing = item,
+					light = light,
+					trigger = if trigger and trigger:IsA("ObjectValue") and trigger.Value and trigger.Value:IsA("Part")
+						then trigger.Value
+						else nil,
+				})
+			end
+		elseif item:IsA("Part") and CollectionService:HasTag(item, "LightsMonitor") then
+			table.insert(monitors, item)
+		elseif item:IsA("TextLabel") and CollectionService:HasTag(item, "LightsDeployScreen") then
+			table.insert(screens, item)
+		elseif item:IsA("Part") and CollectionService:HasTag(item, "LightsDoor") then
+			local hinge = item:FindFirstChild("Hinge")
+			if hinge and hinge:IsA("CFrameValue") then
+				door = { part = item, hinge = hinge.Value }
+			end
+		elseif item:IsA("BasePart") and item.Name == "ShadowPath" then
+			local from, to = item:GetAttribute("From"), item:GetAttribute("To")
+			if typeof(from) == "Vector3" and typeof(to) == "Vector3" then
+				table.insert(shadowPaths, { from = from, to = to })
+			end
+		elseif item:IsA("BasePart") and item.Name == "ApparitionSpot" then
+			table.insert(spots, {
+				name = tostring(item:GetAttribute("SpotName") or "spot"),
+				position = item.Position - Vector3.new(0, item.Size.Y / 2, 0),
+				minDistance = tonumber(item:GetAttribute("MinDistance")) or Config.Apparition.MinPlayerDistance,
+			})
+		end
+	end
+	table.sort(screens, function(a, b)
+		return (a:GetAttribute("Bay") or 0) < (b:GetAttribute("Bay") or 0)
+	end)
+	if #lamps == 0 then
+		warn("[LIGHTS] Nessuna lampada con tag LightsLamp in " .. folder:GetFullName() .. ": luci ed eventi disattivati")
+	end
 	return {
-		folder = folder,
+		folder = folder :: Folder,
 		lamps = lamps,
 		monitors = monitors,
-		deployScreens = deployScreens,
-		door = { part = doorPanel, hinge = hinge },
+		deployScreens = screens,
+		door = door,
 		shadowPaths = shadowPaths,
 		spots = spots,
 	}
+end
+
+-- Da eseguire UNA volta dalla Command Bar di Studio, in modalita' Edit:
+--   require(game.ServerScriptService.LIGHTS.LobbyBuilder).bake()
+-- Costruisce la lobby nel Workspace e imposta l'illuminazione; poi si salva il place (Ctrl+S).
+-- Non sovrascrive mai una lobby esistente, per non cancellare modifiche fatte a mano.
+function LobbyBuilder.bake(): Folder
+	if workspace:FindFirstChild("LIGHTS_Lobby") then
+		error("[LIGHTS] Workspace.LIGHTS_Lobby esiste gia'. Eliminalo a mano se vuoi ricostruirlo (perderai le modifiche fatte su di esso).")
+	end
+	Geometry.setupLighting()
+	local folder = LobbyBuilder.build(Random.new(LobbyBuilder.SEED))
+	print("[LIGHTS] Lobby costruita in Workspace.LIGHTS_Lobby. Salva il place.")
+	return folder
 end
 
 return LobbyBuilder

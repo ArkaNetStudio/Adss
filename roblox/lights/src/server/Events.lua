@@ -178,7 +178,7 @@ function Events.run()
 end
 
 -- Prepara gli eventi con la porta e i monitor del layout.
-function Events.init(door: { part: Part, hinge: CFrame }, monitors: { Part }, paths: { { from: Vector3, to: Vector3 } }, parent: Instance, random: Random)
+function Events.init(door: { part: Part, hinge: CFrame }?, monitors: { Part }, paths: { { from: Vector3, to: Vector3 } }, parent: Instance, random: Random)
 	doorRef = door
 	shadowPaths = paths
 	monitorList = monitors

@@ -2,7 +2,7 @@
 --[[
 	Main.server.lua — avvio del server di LIGHTS (lobby e, dalle prossime milestone, partite nello stesso place).
 	Ordine: dati -> illuminazione -> lobby -> luci -> sagome -> eventi -> matchmaking.
-	Il seed fisso rende la lobby uguale a ogni avvio del server.
+	La lobby e' salvata nel place (Workspace.LIGHTS_Lobby); se manca viene costruita a runtime.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,9 +22,15 @@ local Matchmaking = require(script.Parent:WaitForChild("Matchmaking"))
 
 DataService.init()
 
-local rng = Random.new(20261102)
+local rng = Random.new(LobbyBuilder.SEED)
 Geometry.setupLighting()
-local layout = LobbyBuilder.build(rng)
+-- La lobby salvata nel place (costruita in Studio con LobbyBuilder.bake) ha la precedenza:
+-- a runtime la si costruisce solo se manca, cosi' le modifiche fatte a mano in Studio restano.
+local saved = Workspace:FindFirstChild("LIGHTS_Lobby")
+if not saved then
+	warn("[LIGHTS] Workspace.LIGHTS_Lobby non trovato: lobby costruita a runtime. Esegui LobbyBuilder.bake() in Studio per vederla in Edit.")
+end
+local layout = LobbyBuilder.collect(saved or LobbyBuilder.build(rng))
 
 Lights.init(layout.lamps, rng)
 Apparition.init(layout.spots, layout.folder, rng)
